@@ -31,8 +31,12 @@ class L7NH(object):
         self.__worker.stop()
         return True
 
-    def move_to_position(self, position):
-        self.__motion_command_transmitter.transmit(position)
+    def move_to_position(self,
+                         target_position,
+                         profile_velocity=200000,
+                         profile_acceleration=200000, profile_deceleration=200000):
+        self.__motion_command_transmitter.transmit((
+            target_position, profile_velocity, profile_acceleration, profile_deceleration))
 
     def get_status(self, timeout=0.0):
         return self.__motion_status_receiver.receive(timeout)
@@ -85,17 +89,21 @@ class L7NHWorker(ThreadWorker):
 
         # check for new motion command
         if self.motion_command_receiver.available():
-            target_position = ctypes.c_int32(self.motion_command_receiver.receive())
+            motion_command = self.motion_command_receiver.receive()
+            # set profile parameters through sdo
+            self.__device.sdo_write(0x6081, 0,  bytes(ctypes.c_uint32(motion_command[1])))
+            self.__device.sdo_write(0x6083, 0,  bytes(ctypes.c_uint32(motion_command[2])))
+            self.__device.sdo_write(0x6084, 0,  bytes(ctypes.c_uint32(motion_command[3])))
+            target_position = ctypes.c_int32(motion_command[0])
             controlword = ctypes.c_uint16(0x001F)
         else:
             target_position = ctypes.c_int32(0)
             controlword = ctypes.c_uint16(0x000F)
 
+        # send pdo
         target_torque = ctypes.c_int16(10000)
         drive_mode = ctypes.c_int8(1)
         touch_probe_function = ctypes.c_uint16(0)
-
-        # send pdo
         self.__device.output = \
             bytes(controlword) \
             + bytes(target_torque) \

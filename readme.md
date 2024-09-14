@@ -31,7 +31,7 @@ def main():
             if reached:
                 break
 
-        l7nh.move_to_position(-1000000)
+        l7nh.move_to_position(-10000000)
         time.sleep(0.1)
         while True:
             current_position, reached = l7nh.get_status(0.1)
