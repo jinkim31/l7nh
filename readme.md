@@ -1,6 +1,6 @@
 # LS L7NH 서보 드라이브 제어 패키지
 
-## 시작하기(Windows)
+## 셋업(Windows)
 
 - npcap 설치: https://npcap.com (설치 시 'Install Npcap in WinPcap API-compatible Mode' 선택)
 - 필요 패키지 설치:
