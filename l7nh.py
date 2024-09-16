@@ -11,6 +11,7 @@ class L7NH(object):
         self.__motion_status_receiver = ItcReceiver(1)
         self.__is_open = False
         self.__device = None
+        self.__motion_command_number_counter = 0
 
         # inter-thread links
         self.__motion_command_transmitter.link(self.__worker.motion_command_receiver)
@@ -23,6 +24,7 @@ class L7NH(object):
             return False
         self.__is_open = True
         self.__worker.start()
+        time.sleep(1.0)  # let the pdo loop run for a while
         return True
 
     def close(self):
@@ -31,14 +33,19 @@ class L7NH(object):
         self.__worker.stop()
         return True
 
-    def move_to_position(self,
-                         target_position,
-                         profile_velocity=200000,
-                         profile_acceleration=200000, profile_deceleration=200000):
+    def move_position_profile(self,
+                              target_position: object,
+                              profile_velocity: object = 200000,
+                              profile_acceleration: object = 200000, profile_deceleration: object = 200000) -> object:
+        command_number = self.__motion_command_number_counter
         self.__motion_command_transmitter.transmit((
-            target_position, profile_velocity, profile_acceleration, profile_deceleration))
+            command_number,
+            target_position, profile_velocity,
+            profile_acceleration, profile_deceleration))
+        self.__motion_command_number_counter += 1
+        return command_number
 
-    def get_status(self, timeout=0.0):
+    def get_status(self, timeout=0.1):
         return self.__motion_status_receiver.receive(timeout)
 
 
@@ -48,6 +55,7 @@ class L7NHWorker(ThreadWorker):
         self.motion_command_receiver = ItcReceiver(1)
         self.motion_status_transmitter = ItcTransmitter()
         self.__master = pysoem.Master()
+        self.__motion_command_number = None
 
     def open_ethercat(self, ethernet_adapter_id, device_index=0):
         self.__master.open(ethernet_adapter_id)
@@ -87,14 +95,17 @@ class L7NHWorker(ThreadWorker):
 
     def _user_on_loop(self):
 
+        pdo_receive_motion_command_number = self.__motion_command_number
+
         # check for new motion command
         if self.motion_command_receiver.available():
             motion_command = self.motion_command_receiver.receive()
+            self.__motion_command_number = motion_command[0]
             # set profile parameters through sdo
-            self.__device.sdo_write(0x6081, 0,  bytes(ctypes.c_uint32(motion_command[1])))
-            self.__device.sdo_write(0x6083, 0,  bytes(ctypes.c_uint32(motion_command[2])))
-            self.__device.sdo_write(0x6084, 0,  bytes(ctypes.c_uint32(motion_command[3])))
-            target_position = ctypes.c_int32(motion_command[0])
+            self.__device.sdo_write(0x6081, 0,  bytes(ctypes.c_uint32(motion_command[2])))
+            self.__device.sdo_write(0x6083, 0,  bytes(ctypes.c_uint32(motion_command[3])))
+            self.__device.sdo_write(0x6084, 0,  bytes(ctypes.c_uint32(motion_command[4])))
+            target_position = ctypes.c_int32(motion_command[1])
             controlword = ctypes.c_uint16(0x001F)
         else:
             target_position = ctypes.c_int32(0)
@@ -125,7 +136,7 @@ class L7NHWorker(ThreadWorker):
 
         # transmit motion status
         reached = bool(statusword.value >> 10 & 0x01)
-        motion_status = (actual_position.value, reached)
+        motion_status = (pdo_receive_motion_command_number, actual_position.value, reached)
         self.motion_status_transmitter.transmit(motion_status)
 
     def _user_on_stop(self):
