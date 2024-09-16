@@ -12,6 +12,7 @@ class L7NH(object):
         self.__is_open = False
         self.__device = None
         self.__motion_command_number_counter = 0
+        self.__position_limit = (None, None)
 
         # inter-thread links
         self.__motion_command_transmitter.link(self.__worker.motion_command_receiver)
@@ -33,10 +34,21 @@ class L7NH(object):
         self.__worker.stop()
         return True
 
+    def set_position_limit(self, limit):
+        self.__position_limit = limit
+
     def move_position_profile(self,
                               target_position: object,
                               profile_velocity: object = 200000,
                               profile_acceleration: object = 200000, profile_deceleration: object = 200000) -> object:
+        # check position limit
+        if self.__position_limit[0] is not None:
+            if target_position < self.__position_limit[0]:
+                raise Exception('Position limit exceeded.')
+        if self.__position_limit[1] is not None:
+            if target_position > self.__position_limit[1]:
+                raise Exception('Position limit exceeded.')
+
         command_number = self.__motion_command_number_counter
         self.__motion_command_transmitter.transmit((
             command_number,
