@@ -14,7 +14,8 @@ print(pysoem.find_adapters())
 ```
 
 ## 예제
-
+⚠️ 휴먼랩 리니어스테이지 기준 carriage를 모터 쪽 끝에 가깝게 이동시킨 상태에서 전원 인가 후 아래 코드 실행 시 좌우 끝까지 빠르게 이동함. 
+안전한 구동을 위해 `target_position`과 `profile_velocity`를 줄여서 테스트할 것을 권장함.
 ```python
 from l7nh import L7NH
 
