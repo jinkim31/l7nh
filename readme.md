@@ -28,8 +28,9 @@ def main():
         profile_acceleration=25600000, profile_deceleration=6400000)
 
     while True:
-        status_command_number, current_position, reached = l7nh.get_status()
-        if status_command_number == command_number and reached:
+        status_command_number, target_reached, current_position = l7nh.get_status()
+        print(f'current position: {current_position}')
+        if status_command_number == command_number and target_reached:
             break
 
     command_number = l7nh.move_position_profile(
@@ -37,8 +38,9 @@ def main():
         profile_acceleration=25600000, profile_deceleration=6400000)
 
     while True:
-        status_command_number, current_position, reached = l7nh.get_status()
-        if status_command_number == command_number and reached:
+        status_command_number, target_reached, current_position = l7nh.get_status()
+        print(f'current position: {current_position}')
+        if status_command_number == command_number and target_reached:
             break
 
     l7nh.close()

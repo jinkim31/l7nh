@@ -49,12 +49,14 @@ class L7NH(object):
             if target_position > self.__position_limit[1]:
                 raise Exception('Position limit exceeded.')
 
+        # transmit motion command
         command_number = self.__motion_command_number_counter
         self.__motion_command_transmitter.transmit((
             command_number,
             target_position, profile_velocity,
             profile_acceleration, profile_deceleration))
         self.__motion_command_number_counter += 1
+
         return command_number
 
     def get_status(self, timeout=0.1):
@@ -144,11 +146,11 @@ class L7NHWorker(ThreadWorker):
         digital_input = ctypes.c_int32.from_buffer_copy(self.__device.input[12:16])
         actual_drive_mode = ctypes.c_int8.from_buffer_copy(self.__device.input[16:17])
         velocity_command = ctypes.c_int16.from_buffer_copy(self.__device.input[17:19])
-        actual_velocity = ctypes.c_int16.from_buffer_copy(self.__device.input[19:21])
+        actual_velocity = ctypes.c_int32.from_buffer_copy(self.__device.input[19:23])
 
         # transmit motion status
         reached = bool(statusword.value >> 10 & 0x01)
-        motion_status = (pdo_receive_motion_command_number, actual_position.value, reached)
+        motion_status = (pdo_receive_motion_command_number, reached, actual_position.value)
         self.motion_status_transmitter.transmit(motion_status)
 
     def _user_on_stop(self):
