@@ -1,4 +1,4 @@
-from framework.multithreading import ThreadWorker, ItcReceiver, ItcTransmitter
+from .framework.multithreading import ThreadWorker, ItcReceiver, ItcTransmitter
 import pysoem
 import time
 import ctypes
