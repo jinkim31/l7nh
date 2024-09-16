@@ -9,6 +9,7 @@ pip install pysoem
 ```
 - 이더넷 어댑터 ID 알아내기:
 ```python
+import pysoem
 print(pysoem.find_adapters())
 ```
 
